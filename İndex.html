@@ -2,705 +2,613 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>BILENCEPHALON - Vintage Classroom</title>
-
 <style>
-* {
-  box-sizing: border-box;
+*{box-sizing:border-box}
+html,body{
+ margin:0;width:100%;height:100%;
+ overflow:hidden;background:#211c16;
 }
-
-html, body {
-  margin: 0;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  background: #211c16;
-  font-family: Georgia, serif;
+canvas{width:100vw;height:100vh;display:block}
+#hud{
+ position:fixed;top:18px;left:20px;
+ color:#eee3cd;pointer-events:none;
+ text-shadow:0 2px 6px #000;
+ font-family:Arial,sans-serif
 }
-
-canvas {
-  display: block;
-  width: 100vw;
-  height: 100vh;
+.brand{font-size:12px;letter-spacing:4px;font-weight:bold}
+.sub{font-size:9px;letter-spacing:2px;margin-top:5px;color:#b8a98d}
+#controls{
+ position:fixed;right:12px;bottom:12px;
+ display:flex;gap:7px
 }
-
-#hud {
-  position: fixed;
-  top: 18px;
-  left: 20px;
-  color: #e9dec8;
-  pointer-events: none;
-  text-shadow: 0 2px 5px #000;
+button{
+ border:1px solid #887452;
+ background:#211e18e8;color:#f5ead5;
+ border-radius:20px;padding:10px 12px;font-size:11px
 }
-
-.brand {
-  font-family: Arial, sans-serif;
-  font-size: 12px;
-  letter-spacing: 4px;
-  font-weight: bold;
+#status{
+ position:fixed;left:15px;bottom:18px;
+ color:#e1d2b4;font:9px Arial;letter-spacing:2px
 }
-
-.subtitle {
-  margin-top: 5px;
-  font-family: Arial, sans-serif;
-  font-size: 9px;
-  letter-spacing: 2px;
-  color: #b8a98d;
-}
-
-#controls {
-  position: fixed;
-  right: 12px;
-  bottom: 12px;
-  display: flex;
-  gap: 7px;
-}
-
-button {
-  border: 1px solid #887452;
-  background: #211e18e8;
-  color: #f5ead5;
-  border-radius: 20px;
-  padding: 10px 12px;
-  font-size: 11px;
-}
-
-button:active {
-  background: #53442d;
-}
-
-#status {
-  position: fixed;
-  left: 15px;
-  bottom: 18px;
-  color: #e1d2b4;
-  font: 9px Arial;
-  letter-spacing: 2px;
-}
-
 </style>
 </head>
-
 <body>
 
 <canvas id="scene" width="1280" height="720"></canvas>
 
 <div id="hud">
-  <div class="brand">BILENCEPHALON</div>
-  <div class="subtitle">A SMALL MOMENT IN HISTORY</div>
+ <div class="brand">BILENCEPHALON</div>
+ <div class="sub">A SMALL MOMENT IN HISTORY</div>
 </div>
 
 <div id="status">VINTAGE CLASSROOM · 10 SEC</div>
 
 <div id="controls">
-  <button id="play">Ⅱ Duraklat</button>
-  <button id="restart">↺ Baştan</button>
-  <button id="record">● Videoyu kaydet</button>
+ <button id="play">Ⅱ Duraklat</button>
+ <button id="restart">↺ Baştan</button>
+ <button id="record">● Videoyu kaydet</button>
 </div>
 
 <script>
 
-const canvas = document.getElementById("scene");
-const ctx = canvas.getContext("2d");
+const canvas=document.getElementById("scene");
+const ctx=canvas.getContext("2d");
 
-const W = 1280;
-const H = 720;
+const W=1280,H=720;
+let time=0,paused=false,last=0;
 
-let time = 0;
-let paused = false;
-let last = 0;
-let recording = false;
+const duration=10;
 
-const duration = 10;
-
-function clamp(v) {
-  return Math.max(0, Math.min(1, v));
+function clamp(v){
+ return Math.max(0,Math.min(1,v));
 }
 
-function ease(a, b, v) {
-  let q = clamp((v-a)/(b-a));
-  return q*q*(3-2*q);
+function ease(a,b,v){
+ let q=clamp((v-a)/(b-a));
+ return q*q*(3-2*q);
 }
 
-function lerp(a,b,t) {
-  return a+(b-a)*t;
+function lerp(a,b,t){
+ return a+(b-a)*t;
 }
 
-function line(x1,y1,x2,y2,color="#29251f",width=5) {
-  ctx.beginPath();
-  ctx.moveTo(x1,y1);
-  ctx.lineTo(x2,y2);
-  ctx.strokeStyle=color;
-  ctx.lineWidth=width;
-  ctx.lineCap="round";
-  ctx.lineJoin="round";
-  ctx.stroke();
+function line(x1,y1,x2,y2,color="#29251f",width=5){
+ ctx.beginPath();
+ ctx.moveTo(x1,y1);
+ ctx.lineTo(x2,y2);
+ ctx.strokeStyle=color;
+ ctx.lineWidth=width;
+ ctx.lineCap="round";
+ ctx.lineJoin="round";
+ ctx.stroke();
 }
 
-function oval(x,y,rx,ry,fill,stroke="#29251f",width=4) {
-  ctx.beginPath();
-  ctx.ellipse(x,y,rx,ry,0,0,Math.PI*2);
-  ctx.fillStyle=fill;
-  ctx.fill();
-  ctx.lineWidth=width;
-  ctx.strokeStyle=stroke;
-  ctx.stroke();
+function oval(x,y,rx,ry,fill,stroke="#29251f",width=4){
+ ctx.beginPath();
+ ctx.ellipse(x,y,rx,ry,0,0,Math.PI*2);
+ ctx.fillStyle=fill;
+ ctx.fill();
+ ctx.lineWidth=width;
+ ctx.strokeStyle=stroke;
+ ctx.stroke();
 }
 
-/* BACKGROUND */
+/* VINTAGE CLASSROOM */
 
-function drawBackground() {
+function drawBackground(){
 
-  let g=ctx.createLinearGradient(0,0,0,H);
+ let g=ctx.createLinearGradient(0,0,0,H);
+ g.addColorStop(0,"#c9b99a");
+ g.addColorStop(1,"#8d7b62");
 
-  g.addColorStop(0,"#c9b99a");
-  g.addColorStop(1,"#8d7b62");
+ ctx.fillStyle=g;
+ ctx.fillRect(0,0,W,H);
 
-  ctx.fillStyle=g;
-  ctx.fillRect(0,0,W,H);
+ // Wooden wall
 
-  // Wooden wall details
+ for(let y=80;y<580;y+=100){
+  line(0,y,W,y,"rgba(69,53,36,.12)",2);
+ }
 
-  for(let y=80;y<580;y+=100) {
-    line(0,y,W,y,"rgba(69,53,36,.12)",2);
-  }
+ for(let x=-80;x<W;x+=190){
+  line(x,0,x,590,"rgba(69,53,36,.07)",2);
+ }
 
-  for(let x=-80;x<W;x+=190) {
-    line(x,0,x,590,"rgba(69,53,36,.07)",2);
-  }
+ // Floor
 
-  // Floor
+ ctx.fillStyle="#594638";
+ ctx.fillRect(0,590,W,130);
 
-  ctx.fillStyle="#594638";
-  ctx.fillRect(0,590,W,130);
+ for(let x=-80;x<W;x+=180){
+  line(x,590,x+95,720,"#3e3026",3);
+ }
 
-  for(let x=-80;x<W;x+=180) {
-    line(x,590,x+95,720,"#3e3026",3);
-  }
+ // Blackboard frame
 
-  // Blackboard frame
+ ctx.fillStyle="#513b29";
+ ctx.fillRect(260,100,790,410);
 
-  ctx.fillStyle="#513b29";
-  ctx.fillRect(260,100,790,410);
+ ctx.fillStyle="#9c7c50";
+ ctx.fillRect(273,113,764,384);
 
-  ctx.fillStyle="#9c7c50";
-  ctx.fillRect(273,113,764,384);
+ // Blackboard
 
-  // Blackboard
+ ctx.fillStyle="#293e34";
+ ctx.fillRect(288,128,734,354);
 
-  ctx.fillStyle="#293e34";
-  ctx.fillRect(288,128,734,354);
+ // Chalk texture
 
-  // Chalkboard texture
+ for(let i=0;i<25;i++){
+  ctx.fillStyle="rgba(235,230,207,.035)";
+  ctx.fillRect(
+   305+(i*89%690),
+   145+(i*53%315),
+   35,1.5
+  );
+ }
 
-  for(let i=0;i<25;i++) {
-    ctx.fillStyle="rgba(235,230,207,.035)";
-    ctx.fillRect(
-      305+(i*89%690),
-      145+(i*53%315),
-      35,1.5
+ // Chalk tray
+
+ ctx.fillStyle="#a18358";
+ ctx.fillRect(288,482,734,14);
+
+ ctx.fillStyle="#e7dfcc";
+ ctx.fillRect(938,475,30,7);
+
+ // Window
+
+ ctx.fillStyle="#59452f";
+ ctx.fillRect(65,145,125,240);
+
+ ctx.fillStyle="#c7c4a9";
+ ctx.fillRect(75,155,105,220);
+
+ line(127,155,127,375,"#66523a",6);
+ line(75,265,180,265,"#66523a",6);
+
+ // Clock
+
+ oval(1125,145,42,42,"#d9c9a7","#493a2a",6);
+
+ line(1125,145,1125,116,"#493a2a",4);
+ line(1125,145,1145,155,"#493a2a",4);
+
+ // Desk
+
+ ctx.fillStyle="#62452f";
+ ctx.fillRect(835,570,280,24);
+
+ ctx.fillStyle="#493326";
+ ctx.fillRect(855,594,15,92);
+ ctx.fillRect(1080,594,15,92);
+
+ ctx.save();
+ ctx.translate(965,565);
+ ctx.rotate(-.08);
+ ctx.fillStyle="#e2d7bc";
+ ctx.fillRect(-45,-20,90,38);
+ ctx.restore();
+}
+ /* CHALK WRITING */
+
+function drawEquation(){
+
+ const chars=[
+  ["2",430,2.0,2.55],
+  ["+",535,2.75,3.15],
+  ["2",640,3.35,3.9],
+  ["=",745,4.05,4.5],
+  ["4",850,4.7,5.3]
+ ];
+
+ ctx.save();
+ ctx.strokeStyle="#e8e5d6";
+ ctx.lineWidth=8;
+ ctx.lineCap="round";
+ ctx.lineJoin="round";
+
+ for(const [s,a,start,end] of chars){
+
+  let p=ease(start,end,time);
+  if(!p)continue;
+
+  ctx.save();
+  ctx.translate(a,235);
+
+  const paths={
+   "2":[[[0,0],[12,-13],[32,-17],[50,-6],[50,10],[35,27],[10,52],[0,62],[55,62]]],
+   "+":[[[0,25],[55,25]],[[28,0],[28,55]]],
+   "=":[[[0,17],[58,17]],[[0,42],[58,42]]],
+   "4":[[[40,0],[3,38],[58,38]],[[40,0],[40,65]]]
+  }[s];
+
+  paths.forEach(path=>{
+   let n=(path.length-1)*p;
+   let k=Math.floor(n);
+   let f=n-k;
+
+   ctx.beginPath();
+   ctx.moveTo(...path[0]);
+
+   for(let j=1;j<=Math.min(k+1,path.length-1);j++){
+    ctx.lineTo(...path[j]);
+   }
+
+   if(k<path.length-1){
+    ctx.lineTo(
+     lerp(path[k][0],path[k+1][0],f),
+     lerp(path[k][1],path[k+1][1],f)
     );
-  }
+   }
 
-  // Chalk tray
-
-  ctx.fillStyle="#a18358";
-  ctx.fillRect(288,482,734,14);
-
-  ctx.fillStyle="#e7dfcc";
-  ctx.fillRect(938,475,30,7);
-
-  // Window
-
-  ctx.fillStyle="#59452f";
-  ctx.fillRect(65,145,125,240);
-
-  ctx.fillStyle="#c7c4a9";
-  ctx.fillRect(75,155,105,220);
-
-  line(127,155,127,375,"#66523a",6);
-  line(75,265,180,265,"#66523a",6);
-
-  // Clock
-
-  oval(1125,145,42,42,"#d9c9a7","#493a2a",6);
-
-  line(1125,145,1125,116,"#493a2a",4);
-  line(1125,145,1145,155,"#493a2a",4);
-
-  // Desk
-
-  ctx.fillStyle="#62452f";
-  ctx.fillRect(835,570,280,24);
-
-  ctx.fillStyle="#493326";
-  ctx.fillRect(855,594,15,92);
-  ctx.fillRect(1080,594,15,92);
-
-  // Paper
-
-  ctx.save();
-  ctx.translate(965,565);
-  ctx.rotate(-.08);
-  ctx.fillStyle="#e2d7bc";
-  ctx.fillRect(-45,-20,90,38);
-  ctx.restore();
-
-}
-/* DRAWING THE EQUATION */
-
-function drawEquation() {
-
-  const chars = [
-    ["2",430,2.0,2.55],
-    ["+",535,2.75,3.15],
-    ["2",640,3.35,3.9],
-    ["=",745,4.05,4.5],
-    ["4",850,4.7,5.3]
-  ];
-
-  ctx.save();
-
-  ctx.strokeStyle="#e8e5d6";
-  ctx.lineWidth=8;
-  ctx.lineCap="round";
-  ctx.lineJoin="round";
-
-  for(const [s,a,start,end] of chars) {
-
-    let p=ease(start,end,time);
-
-    if(!p) continue;
-
-    ctx.save();
-    ctx.translate(a,235);
-
-    const paths={
-      "2":[
-        [[0,0],[12,-13],[32,-17],[50,-6],
-         [50,10],[35,27],[10,52],[0,62],[55,62]]
-      ],
-      "+":[
-        [[0,25],[55,25]],
-        [[28,0],[28,55]]
-      ],
-      "=":[
-        [[0,17],[58,17]],
-        [[0,42],[58,42]]
-      ],
-      "4":[
-        [[40,0],[3,38],[58,38]],
-        [[40,0],[40,65]]
-      ]
-    }[s];
-
-    paths.forEach(path=>{
-
-      let n=(path.length-1)*p;
-      let k=Math.floor(n);
-      let f=n-k;
-
-      ctx.beginPath();
-      ctx.moveTo(...path[0]);
-
-      for(let j=1;j<=Math.min(k+1,path.length-1);j++) {
-        ctx.lineTo(...path[j]);
-      }
-
-      if(k<path.length-1) {
-        ctx.lineTo(
-          lerp(path[k][0],path[k+1][0],f),
-          lerp(path[k][1],path[k+1][1],f)
-        );
-      }
-
-      ctx.stroke();
-
-    });
-
-    ctx.restore();
-  }
+   ctx.stroke();
+  });
 
   ctx.restore();
+ }
+
+ ctx.restore();
 }
 
 
-/* TEACHER CHARACTER */
+/* TEACHER */
 
-function drawTeacher() {
+function drawTeacher(){
 
-  let enter=ease(.15,1.3,time);
-  let bob=Math.sin(time*3)*2;
+ const enter=ease(.15,1.3,time);
+ const bob=Math.sin(time*3)*2;
+
+ ctx.save();
+ ctx.translate(lerp(-180,0,enter),bob);
+
+ // Legs
+
+ ctx.fillStyle="#3c3d3b";
+ ctx.strokeStyle="#27231e";
+ ctx.lineWidth=5;
+
+ ctx.beginPath();
+ ctx.moveTo(600,480);
+ ctx.lineTo(640,480);
+ ctx.lineTo(650,596);
+ ctx.lineTo(615,596);
+ ctx.closePath();
+ ctx.fill();
+ ctx.stroke();
+
+ ctx.beginPath();
+ ctx.moveTo(650,480);
+ ctx.lineTo(690,480);
+ ctx.lineTo(704,594);
+ ctx.lineTo(670,594);
+ ctx.closePath();
+ ctx.fill();
+ ctx.stroke();
+
+ oval(630,601,30,11,"#292521");
+ oval(692,599,30,11,"#292521");
+
+ // Jacket
+
+ ctx.beginPath();
+ ctx.moveTo(590,300);
+ ctx.quadraticCurveTo(640,278,684,305);
+ ctx.lineTo(700,488);
+ ctx.quadraticCurveTo(640,510,583,490);
+ ctx.closePath();
+
+ ctx.fillStyle="#62664f";
+ ctx.fill();
+ ctx.stroke();
+
+ // Shirt
+
+ ctx.fillStyle="#e6dac2";
+ ctx.beginPath();
+ ctx.moveTo(628,296);
+ ctx.lineTo(657,296);
+ ctx.lineTo(648,348);
+ ctx.closePath();
+ ctx.fill();
+ ctx.stroke();
+
+ // Tie
+
+ ctx.fillStyle="#794a3b";
+ ctx.beginPath();
+ ctx.moveTo(638,309);
+ ctx.lineTo(650,309);
+ ctx.lineTo(654,350);
+ ctx.lineTo(644,361);
+ ctx.lineTo(636,350);
+ ctx.closePath();
+ ctx.fill();
+ ctx.stroke();
+
+ // Neck
+
+ ctx.fillStyle="#d8b28b";
+ ctx.fillRect(625,270,39,38);
+ ctx.strokeRect(625,270,39,38);
+
+ // Head
+
+ oval(644,230,56,66,"#e4c39c");
+ oval(588,237,11,17,"#d7b28b");
+ oval(700,237,11,17,"#d7b28b");
+
+ // Hair
+
+ ctx.fillStyle="#4a4036";
+ ctx.beginPath();
+ ctx.moveTo(588,222);
+ ctx.quadraticCurveTo(575,162,642,157);
+ ctx.quadraticCurveTo(705,157,704,218);
+ ctx.quadraticCurveTo(670,193,637,198);
+ ctx.quadraticCurveTo(610,197,588,222);
+ ctx.fill();
+ ctx.stroke();
+
+ // Eyes
+
+ oval(625,234,3.5,6,"#29231f","#29231f",1);
+ oval(666,234,3.5,6,"#29231f","#29231f",1);
+
+ line(638,264,657,264,"#704c3b",3);
+
+ // Arm movement
+
+ const reach=ease(1.2,2.3,time);
+ const writing=Math.sin(time*8)*2.3;
+
+ const shoulder=[675,330];
+
+ const elbow=[
+  lerp(710,775,reach),
+  lerp(380,305,reach)+writing
+ ];
+
+ const hand=[
+  lerp(700,855,reach),
+  lerp(390,240,reach)+writing
+ ];
+
+ // Upper arm
+
+ line(
+  shoulder[0],shoulder[1],
+  elbow[0],elbow[1],
+  "#29251f",30
+ );
+
+ line(
+  shoulder[0],shoulder[1],
+  elbow[0],elbow[1],
+  "#62664f",23
+ );
+
+ // Forearm
+
+ line(
+  elbow[0],elbow[1],
+  hand[0],hand[1],
+  "#29251f",27
+ );
+
+ line(
+  elbow[0],elbow[1],
+  hand[0],hand[1],
+  "#62664f",20
+ );
+
+ // Hand
+
+ oval(
+  hand[0],hand[1],
+  13,10,
+  "#e4c39d",
+  "#29251f",3
+ );
+
+ // Chalk
+
+ if(time>1.8 && time<5.7){
 
   ctx.save();
+  ctx.translate(hand[0]+8,hand[1]-7);
+  ctx.rotate(-.5);
 
-  ctx.translate(lerp(-180,0,enter),bob);
-
-  // Legs
-
-  ctx.fillStyle="#3c3d3b";
-  ctx.strokeStyle="#27231e";
-  ctx.lineWidth=5;
-
-  ctx.beginPath();
-  ctx.moveTo(600,480);
-  ctx.lineTo(640,480);
-  ctx.lineTo(650,596);
-  ctx.lineTo(615,596);
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
-
-  ctx.beginPath();
-  ctx.moveTo(650,480);
-  ctx.lineTo(690,480);
-  ctx.lineTo(704,594);
-  ctx.lineTo(670,594);
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
-
-  oval(630,601,30,11,"#292521");
-  oval(692,599,30,11,"#292521");
-
-  // Body / coat
-
-  ctx.beginPath();
-  ctx.moveTo(590,300);
-  ctx.quadraticCurveTo(640,278,684,305);
-  ctx.lineTo(700,488);
-  ctx.quadraticCurveTo(640,510,583,490);
-  ctx.closePath();
-
-  ctx.fillStyle="#62664f";
-  ctx.fill();
-  ctx.stroke();
-
-  // Shirt
-
-  ctx.fillStyle="#e6dac2";
-
-  ctx.beginPath();
-  ctx.moveTo(628,296);
-  ctx.lineTo(657,296);
-  ctx.lineTo(648,348);
-  ctx.closePath();
-
-  ctx.fill();
-  ctx.stroke();
-
-  // Tie
-
-  ctx.fillStyle="#794a3b";
-
-  ctx.beginPath();
-  ctx.moveTo(638,309);
-  ctx.lineTo(650,309);
-  ctx.lineTo(654,350);
-  ctx.lineTo(644,361);
-  ctx.lineTo(636,350);
-  ctx.closePath();
-
-  ctx.fill();
-  ctx.stroke();
-
-  // Neck
-
-  ctx.fillStyle="#d8b28b";
-  ctx.fillRect(625,270,39,38);
-  ctx.strokeRect(625,270,39,38);
-
-  // Head
-
-  oval(644,230,56,66,"#e4c39c");
-
-  // Ears
-
-  oval(588,237,11,17,"#d7b28b");
-  oval(700,237,11,17,"#d7b28b");
-
-  // Hair
-
-  ctx.fillStyle="#4a4036";
-
-  ctx.beginPath();
-  ctx.moveTo(588,222);
-  ctx.quadraticCurveTo(575,162,642,157);
-  ctx.quadraticCurveTo(705,157,704,218);
-  ctx.quadraticCurveTo(670,193,637,198);
-  ctx.quadraticCurveTo(610,197,588,222);
-
-  ctx.fill();
-  ctx.stroke();
-
-  // Face
-
-  oval(625,234,3.5,6,"#29231f","#29231f",1);
-  oval(666,234,3.5,6,"#29231f","#29231f",1);
-
-  line(638,264,657,264,"#704c3b",3);
-
-  // ARM ANIMATION
-
-  let reach=ease(1.2,2.3,time);
-  let writing=Math.sin(time*8)*2.3;
-
-  let shoulder=[675,330];
-
-  let elbow=[
-    lerp(710,775,reach),
-    lerp(380,305,reach)+writing
-  ];
-
-  let hand=[
-    lerp(700,855,reach),
-    lerp(390,240,reach)+writing
-  ];
-
-  // Upper arm
-
-  line(
-    shoulder[0],shoulder[1],
-    elbow[0],elbow[1],
-    "#29251f",30
-  );
-
-  line(
-    shoulder[0],shoulder[1],
-    elbow[0],elbow[1],
-    "#62664f",23
-  );
-
-  // Forearm
-
-  line(
-    elbow[0],elbow[1],
-    hand[0],hand[1],
-    "#29251f",27
-  );
-
-  line(
-    elbow[0],elbow[1],
-    hand[0],hand[1],
-    "#62664f",20
-  );
-
-  // Hand
-
-  oval(
-    hand[0],hand[1],
-    13,10,
-    "#e4c39d",
-    "#29251f",3
-  );
-
-  // Chalk
-
-  if(time>1.8 && time<5.7) {
-
-    ctx.save();
-
-    ctx.translate(hand[0]+8,hand[1]-7);
-    ctx.rotate(-.5);
-
-    ctx.fillStyle="#f0eddf";
-    ctx.fillRect(-2,-12,5,18);
-
-    ctx.restore();
-  }
-
-  // Jacket details
-
-  line(626,310,646,352,"#29251f",3);
-  line(660,309,647,350,"#29251f",3);
+  ctx.fillStyle="#f0eddf";
+  ctx.fillRect(-2,-12,5,18);
 
   ctx.restore();
+ }
+
+ // Jacket details
+
+ line(626,310,646,352,"#29251f",3);
+ line(660,309,647,350,"#29251f",3);
+
+ ctx.restore();
 }
 
 
-/* FILM ATMOSPHERE */
+/* VINTAGE FILM EFFECT */
 
-function drawAtmosphere() {
+function drawAtmosphere(){
 
-  // Chalk dust
+ for(let i=0;i<12;i++){
 
-  for(let i=0;i<12;i++) {
+  const x=380+(i*71%540);
+  const y=190+((i*43+time*9)%260);
 
-    let x=380+(i*71%540);
-    let y=190+((i*43+time*9)%260);
+  ctx.fillStyle=
+   `rgba(235,232,210,${.10+.08*Math.sin(time*2+i)})`;
 
-    ctx.fillStyle=
-      `rgba(235,232,210,${.10+.08*Math.sin(time*2+i)})`;
+  ctx.beginPath();
+  ctx.arc(x,y,1.3,0,Math.PI*2);
+  ctx.fill();
+ }
 
-    ctx.beginPath();
-    ctx.arc(x,y,1.3,0,Math.PI*2);
-    ctx.fill();
-  }
+ const v=ctx.createRadialGradient(
+  640,350,230,
+  640,350,760
+ );
 
-  // Vignette
+ v.addColorStop(0,"rgba(0,0,0,0)");
+ v.addColorStop(1,"rgba(18,12,8,.42)");
 
-  let v=ctx.createRadialGradient(
-    640,350,230,
-    640,350,760
-  );
-
-  v.addColorStop(0,"rgba(0,0,0,0)");
-  v.addColorStop(1,"rgba(18,12,8,.42)");
-
-  ctx.fillStyle=v;
-  ctx.fillRect(0,0,W,H);
+ ctx.fillStyle=v;
+ ctx.fillRect(0,0,W,H);
 }
 
 
 /* MAIN SCENE */
 
-function draw() {
+function draw(){
 
-  ctx.clearRect(0,0,W,H);
+ ctx.clearRect(0,0,W,H);
 
-  drawBackground();
-  drawEquation();
-  drawTeacher();
-  drawAtmosphere();
-
+ drawBackground();
+ drawEquation();
+ drawTeacher();
+ drawAtmosphere();
 }
 
 
-/* ANIMATION LOOP */
+/* ANIMATION */
 
-function loop(ms) {
+function loop(ms){
 
-  if(!last) last=ms;
+ if(!last)last=ms;
 
-  let dt=Math.min((ms-last)/1000,.05);
-  last=ms;
+ const dt=Math.min((ms-last)/1000,.05);
+ last=ms;
 
-  if(!paused && !recording) {
-    time=Math.min(duration,time+dt);
-  }
+ if(!paused && !recording){
+  time=Math.min(duration,time+dt);
+ }
 
-  draw();
+ draw();
 
-  if(time>=duration && !recording) {
-    paused=true;
-    document.getElementById("play").textContent="▶ Oynat";
-  }
+ if(time>=duration && !recording){
+  paused=true;
+  document.getElementById("play").textContent="▶ Oynat";
+ }
 
-  requestAnimationFrame(loop);
+ requestAnimationFrame(loop);
 }
 
 
 /* CONTROLS */
 
-function restart() {
+function restart(){
 
-  time=0;
-  paused=false;
-  last=0;
+ time=0;
+ paused=false;
+ last=0;
 
-  document.getElementById("play").textContent="Ⅱ Duraklat";
+ document.getElementById("play").textContent="Ⅱ Duraklat";
 }
 
 document.getElementById("play").onclick=()=>{
 
-  if(time>=duration) {
-    restart();
-  } else {
-    paused=!paused;
+ if(time>=duration){
+  restart();
+ }else{
+  paused=!paused;
 
-    document.getElementById("play").textContent=
-      paused ? "▶ Oynat" : "Ⅱ Duraklat";
-  }
-
+  document.getElementById("play").textContent=
+   paused?"▶ Oynat":"Ⅱ Duraklat";
+ }
 };
 
 document.getElementById("restart").onclick=restart;
 
 
-/* VIDEO EXPORT */
+/* VIDEO RECORDING */
 
 document.getElementById("record").onclick=()=>{
 
-  if(!canvas.captureStream || !window.MediaRecorder) {
-    alert("Bu tarayıcı video kaydını desteklemiyor.");
-    return;
-  }
+ if(!canvas.captureStream || !window.MediaRecorder){
+  alert("Tarayıcı video kaydını desteklemiyor.");
+  return;
+ }
 
-  const button=document.getElementById("record");
+ const button=document.getElementById("record");
 
-  try {
+ try{
 
-    paused=true;
-    time=0;
+  paused=true;
+  time=0;
 
-    const stream=canvas.captureStream(30);
+  const stream=canvas.captureStream(30);
 
-    const mime=
-      MediaRecorder.isTypeSupported("video/webm;codecs=vp9")
-      ? "video/webm;codecs=vp9"
-      : "video/webm";
+  const mime=
+   MediaRecorder.isTypeSupported("video/webm;codecs=vp9")
+   ?"video/webm;codecs=vp9"
+   :"video/webm";
 
-    const recorder=new MediaRecorder(stream,{
-      mimeType:mime,
-      videoBitsPerSecond:3500000
-    });
+  const recorder=new MediaRecorder(stream,{
+   mimeType:mime,
+   videoBitsPerSecond:3500000
+  });
 
-    let chunks=[];
+  let chunks=[];
 
-    recorder.ondataavailable=e=>{
-      if(e.data.size) chunks.push(e.data);
-    };
+  recorder.ondataavailable=e=>{
+   if(e.data.size)chunks.push(e.data);
+  };
 
-    recorder.onstop=()=>{
+  recorder.onstop=()=>{
 
-      const blob=new Blob(chunks,{type:"video/webm"});
-      const url=URL.createObjectURL(blob);
+   const blob=new Blob(chunks,{type:"video/webm"});
+   const url=URL.createObjectURL(blob);
 
-      const a=document.createElement("a");
-      a.href=url;
-      a.download="bilencephalon-vintage-classroom.webm";
-      a.click();
+   const a=document.createElement("a");
+   a.href=url;
+   a.download="bilencephalon-classroom.webm";
+   a.click();
 
-      setTimeout(()=>URL.revokeObjectURL(url),2000);
+   setTimeout(()=>URL.revokeObjectURL(url),2000);
 
-      recording=false;
-      paused=true;
-      time=duration;
-      draw();
+   recording=false;
+   paused=true;
+   time=duration;
+   draw();
 
-      button.textContent="● Videoyu kaydet";
-    };
+   button.textContent="● Videoyu kaydet";
+  };
 
-    recording=true;
-    button.textContent="Kaydediliyor…";
+  recording=true;
+  button.textContent="Kaydediliyor…";
 
-    recorder.start();
+  recorder.start();
 
-    const start=performance.now();
+  const start=performance.now();
 
-    function capture(now) {
+  function capture(now){
 
-      time=Math.min(duration,(now-start)/1000);
+   time=Math.min(duration,(now-start)/1000);
+   draw();
 
-      draw();
-
-      if(time<duration) {
-        requestAnimationFrame(capture);
-      } else {
-        recorder.stop();
-      }
-    }
-
+   if(time<duration){
     requestAnimationFrame(capture);
-
-  } catch(error) {
-
-    recording=false;
-    button.textContent="Kayıt başarısız";
-
+   }else{
+    recorder.stop();
+   }
   }
 
+  requestAnimationFrame(capture);
+
+ }catch(error){
+
+  recording=false;
+  button.textContent="Kayıt başarısız";
+
+ }
 };
 
 
